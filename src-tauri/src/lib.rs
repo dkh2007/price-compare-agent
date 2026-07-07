@@ -25,7 +25,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(orchestrator)
-        .invoke_handler(tauri::generate_handler![commands::query::search_products])
+        .invoke_handler(tauri::generate_handler![
+            commands::query::search_products,
+            commands::settings::get_settings,
+            commands::settings::save_settings,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

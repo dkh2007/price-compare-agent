@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Layout, Typography, Space, Alert, Steps } from "antd";
+import { Layout, Typography, Space, Alert, Steps, App as AntApp } from "antd";
 import { listen } from "@tauri-apps/api/event";
 import SearchBox from "./components/SearchBox";
 import ResultTable from "./components/ResultTable";
 import PriceChart from "./components/PriceChart";
+import SettingsDrawer from "./components/SettingsDrawer";
 import { searchProducts } from "./api/query";
 import type { AgentResult } from "./types/product";
 import "./App.css";
@@ -53,6 +54,7 @@ export default function App() {
   const stepsItems = STEP_LABELS.map((title) => ({ title }));
 
   return (
+    <AntApp>
     <Layout style={{ minHeight: "100vh" }}>
       <Header
         style={{
@@ -61,9 +63,10 @@ export default function App() {
           justifyContent: "center",
         }}
       >
-        <Typography.Title level={3} style={{ color: "#fff", margin: 0 }}>
+        <Typography.Title level={3} style={{ color: "#fff", margin: 0, flex: 1 }}>
           🛒 跨平台比价智能体
         </Typography.Title>
+        <SettingsDrawer />
       </Header>
       <Content style={{ padding: "32px 40px", maxWidth: 1000, margin: "0 auto" }}>
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -111,5 +114,6 @@ export default function App() {
         </Space>
       </Content>
     </Layout>
+    </AntApp>
   );
 }
