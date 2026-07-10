@@ -1,3 +1,4 @@
+import React from "react";
 import { Alert, Typography } from "antd";
 import { RobotOutlined, UserOutlined } from "@ant-design/icons";
 import type { AgentResult } from "../types/product";
@@ -12,10 +13,13 @@ interface Props {
   stepIndex?: number;
   error?: string;
   result?: AgentResult;
+  streamingRecommendation?: string;
+  thinkingText?: string;
 }
 
-export default function ChatBubble({ role, content, loading, stepIndex = -1, error, result }: Props) {
+export default React.memo(function ChatBubble({ role, content, loading, stepIndex = -1, error, result, streamingRecommendation, thinkingText }: Props) {
   const isUser = role === "user";
+  const thinking = thinkingText || result?.thinking || "";
 
   return (
     <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16 }}>
@@ -46,21 +50,49 @@ export default function ChatBubble({ role, content, loading, stepIndex = -1, err
             <StepsBar current={stepIndex} />
           )}
 
+          {/* Agent: 思考过程（始终显示） */}
+          {!isUser && thinking && (
+            <div
+              style={{
+                marginBottom: 12,
+                padding: "10px 14px",
+                background: "#e8e8e8",
+                borderRadius: 8,
+                borderLeft: `${loading ? "3px solid #6366f1" : "3px solid #b0b0b0"}`,
+                fontSize: 12,
+                color: `${loading ? "#777" : "#888"}`,
+                lineHeight: 1.8,
+                whiteSpace: "pre-line",
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+              }}
+            >
+              {thinking}
+            </div>
+          )}
+
           {/* Agent: 错误 */}
           {!isUser && error && (
             <Alert type={error.includes("补充") ? "warning" : "error"} message={error} showIcon />
           )}
 
-          {/* Agent: 结果 */}
-          {!isUser && result && result.products.length > 0 && (
+          {/* Agent: 结果 — 如果有流式推荐正在生成，先显示它 */}
+          {!isUser && ((result && result.products.length > 0) || streamingRecommendation) && (
             <div>
-              {result.recommendation && (
-                <Alert type="success" message={result.recommendation} showIcon style={{ marginBottom: 12 }} />
+              {(streamingRecommendation ?? (result?.recommendation ?? "")) && (
+                <Alert 
+                  type="success" 
+                  message={<div style={{ whiteSpace: "pre-line" }}>{streamingRecommendation ?? result!.recommendation}</div>} 
+                  showIcon 
+                  style={{ marginBottom: 12 }} 
+                />
               )}
-              <ResultTable data={result.products} />
-              <div style={{ marginTop: 12 }}>
-                <PriceChart products={result.products} />
-              </div>
+              {result && <ResultTable data={result.products} />}
+              {result && (
+                <div style={{ marginTop: 12 }}>
+                  <PriceChart products={result.products} />
+                </div>
+              )}
             </div>
           )}
 
@@ -82,4 +114,4 @@ export default function ChatBubble({ role, content, loading, stepIndex = -1, err
       )}
     </div>
   );
-}
+});

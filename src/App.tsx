@@ -23,6 +23,8 @@ interface Message {
   stepIndex?: number;
   error?: string;
   result?: AgentResult;
+  streamingRecommendation?: string;
+  thinkingText?: string;
 }
 
 export default function App() {
@@ -34,7 +36,12 @@ export default function App() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+    if (isNearBottom) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
+    }
   }, [messages]);
 
   const handleSend = async () => {
@@ -58,6 +65,20 @@ export default function App() {
         prev.map((m) => (m.key === agentKey ? { ...m, stepIndex: event.payload.index } : m))
       );
     });
+    const unlistenRec = listen<{ text: string }>("agent-recommendation", (event) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.key === agentKey ? { ...m, streamingRecommendation: event.payload.text } : m
+        )
+      );
+    });
+    const unlistenThink = listen<{ text: string }>("agent-thinking", (event) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.key === agentKey ? { ...m, thinkingText: event.payload.text } : m
+        )
+      );
+    });
     const unlistenErr = listen<string>("agent-step-error", (event) => {
       setMessages((prev) =>
         prev.map((m) => (m.key === agentKey ? { ...m, loading: false, error: event.payload } : m))
@@ -67,7 +88,11 @@ export default function App() {
     try {
       const res = await searchProducts(question);
       setMessages((prev) =>
-        prev.map((m) => (m.key === agentKey ? { ...m, loading: false, result: res } : m))
+        prev.map((m) =>
+          m.key === agentKey
+            ? { ...m, loading: false, result: res, thinkingText: res.thinking }
+            : m
+        )
       );
     } catch (e) {
       setMessages((prev) =>
@@ -78,6 +103,8 @@ export default function App() {
     } finally {
       setSending(false);
       unlistenStep.then((fn) => fn());
+      unlistenRec.then((fn) => fn());
+      unlistenThink.then((fn) => fn());
       unlistenErr.then((fn) => fn());
     }
   };
@@ -105,6 +132,8 @@ export default function App() {
                 stepIndex={msg.stepIndex}
                 error={msg.error}
                 result={msg.result}
+                streamingRecommendation={msg.streamingRecommendation}
+                thinkingText={msg.thinkingText}
               />
             ))}
           </div>
