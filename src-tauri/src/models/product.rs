@@ -56,4 +56,6 @@ impl ParsedIntent {
 pub struct AgentResult {
     pub products: Vec<Product>,
     pub recommendation: String,
+    /// 完整的思考过程文本，前端持久化显示
+    pub thinking: String,
 }

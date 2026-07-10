@@ -22,5 +22,6 @@ export interface AgentStep {
 export interface AgentResult {
   products: Product[];
   recommendation: string;
+  thinking: string;
   steps: AgentStep[];
 }

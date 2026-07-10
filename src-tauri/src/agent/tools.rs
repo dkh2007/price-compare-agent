@@ -7,6 +7,8 @@ pub fn load_products() -> anyhow::Result<Vec<Product>> {
     Ok(products)
 }
 
+const MAX_CANDIDATES: usize = 15;
+
 /// 根据意图粗筛候选商品（简单关键词匹配，控制 token 消耗）
 pub fn filter_candidates(products: &[Product], intent: &ParsedIntent) -> Vec<Product> {
     let keywords: Vec<String> = {
@@ -22,8 +24,7 @@ pub fn filter_candidates(products: &[Product], intent: &ParsedIntent) -> Vec<Pro
     };
 
     if keywords.is_empty() {
-        // 没有关键词就全返回（但限制数量）
-        return products.iter().take(30).cloned().collect();
+        return products.iter().take(MAX_CANDIDATES).cloned().collect();
     }
 
     let mut scored: Vec<(usize, &Product)> = products
@@ -42,12 +43,31 @@ pub fn filter_candidates(products: &[Product], intent: &ParsedIntent) -> Vec<Pro
         .filter(|(score, _)| *score > 0)
         .collect();
 
-    // 按匹配分数降序，取前 30 条
     scored.sort_by_key(|(s, _)| std::cmp::Reverse(*s));
-    scored.into_iter().map(|(_, p)| p.clone()).take(30).collect()
+    scored.into_iter().map(|(_, p)| p.clone()).take(MAX_CANDIDATES).collect()
 }
 
 /// 把候选商品列表序列化为 JSON 字符串，喂给 LLM
+/// 只保留 LLM 需要的字段，减少 Token 消耗
+#[derive(serde::Serialize)]
+struct LlmProductView<'a> {
+    name: &'a str,
+    platform: &'a str,
+    price: f64,
+    specs: &'a str,
+    features: &'a Vec<String>,
+}
+
 pub fn products_to_json(products: &[Product]) -> String {
-    serde_json::to_string(products).unwrap_or_else(|_| "[]".into())
+    let views: Vec<LlmProductView> = products
+        .iter()
+        .map(|p| LlmProductView {
+            name: &p.name,
+            platform: &p.platform,
+            price: p.price,
+            specs: &p.specs,
+            features: &p.features,
+        })
+        .collect();
+    serde_json::to_string(&views).unwrap_or_else(|_| "[]".into())
 }
